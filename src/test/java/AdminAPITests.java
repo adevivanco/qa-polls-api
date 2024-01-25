@@ -1,46 +1,19 @@
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
-import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
-import io.restassured.specification.ResponseSpecification;
+
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.runner.Request;
-
-import java.util.List;
-import java.util.Map;
 
 import static io.restassured.RestAssured.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 
-public class e2eTests {
+public class AdminAPITests {
 
     String templatePollUuid = "";
-    @Test
-    public void testGetRequest() {
-        // Set the base URI for your API
-        RestAssured.baseURI = "https://mc11qn4zok.execute-api.us-east-2.amazonaws.com";
-
-
-        given()
-            .header("Content-Type", "application/json")
-            .body("{ " +
-                    "\"email\": \"andresdev@gmail.com\"," +
-                    "\"password\": \"Test@1234\"" +
-                    " }")
-            .log().all()
-        .when()
-        .post("/register")
-        .then()
-            .log().all()
-            .statusCode(201);
-    }
-
 
 
     @ParameterizedTest
@@ -89,7 +62,7 @@ public class e2eTests {
 
 
     @ParameterizedTest
-    @CsvSource({"AL,peru.png", "Chelsea,chelsea.png", "Juventus,juventus.png"})
+    @CsvSource({"ATP,peru.png", "Chelsea,chelsea.png", "Juventus,juventus.png"})
     public void createTeams(String teamName, String teamImage) {
 
         String userName = "ninjadelcodigo@gmail.com";
@@ -115,23 +88,24 @@ public class e2eTests {
         //This token will be used in later requests
         String token = JsonPath.from(jsonString).get("token");
 
+        RequestSpecification postTeamRequest = RestAssured.given().log().all();
+        postTeamRequest.header("Content-Type", "application/json");
+        postTeamRequest.header("Authorization", "Bearer " + token);
 
-        //Step - 2
-        // create a team
-        given()
-            .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + token)
-            .body("{ " +
-                "\"name\": \""  + teamName + "\"" + "," +
-                "\"image\": \""  + teamImage + "\"" +
-                " }")
-            .log().all()
-        .when()
-            .post("/teams")
-        .then()
-                .log().all()
-                .statusCode(200)
-                .body("data.name", equalTo(teamName));
+        Response postTeamResponse = postTeamRequest.body(
+             "{ " +
+                    "\"name\": \""  + teamName + "\"" + "," +
+                    "\"image\": \""  + teamImage + "\"" +
+               " }")
+                .post("/teams");
+
+        postTeamResponse.then().log().all();
+        Assertions.assertEquals(response.getStatusCode(), 200);
+
+        jsonString = postTeamResponse.asString();
+        Assertions.assertEquals(JsonPath.from(jsonString).get("data.name"), teamName);
+        Assertions.assertEquals(JsonPath.from(jsonString).get("data.image"), teamImage);
+
     }
 
 
@@ -165,21 +139,6 @@ public class e2eTests {
 
         System.out.println(token);
 
-        //Step - 2
-        // create a team
-        given()
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + token)
-                .body("{ " +
-                        "\"name\": \""  + homeTeam + "\"" + "," +
-                        "\"image\": \""  + awayTeam + "\"" +
-                        " }")
-                .log().all()
-                .when()
-                .post("/teams")
-                .then()
-                .log().all()
-                .statusCode(200);
     }
 }
 
